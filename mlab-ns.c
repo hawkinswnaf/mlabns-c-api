@@ -6,6 +6,12 @@
 #include <string.h>
 #include <netdb.h>
 #include <arpa/inet.h>
+#include "kvl.h"
+
+extern int input_pos;
+extern int input_len;
+extern char *input_string;
+struct key_value *kvl_list;
 
 #define DEBUG 1
 /*
@@ -25,6 +31,10 @@ int mlab_ns(char *service, char *mlabns_server, struct sockaddr_in *service_ip) 
 #ifdef DEBUG
   char buff[512] = {'\0', };
 #endif
+
+  char response[512] = {'\0',};
+
+  kvl_list = NULL;
 
   if (!mlabns_server) {
     mlabns_server = "mlab-ns.appspot.com";
@@ -98,12 +108,33 @@ int mlab_ns(char *service, char *mlabns_server, struct sockaddr_in *service_ip) 
 
   write(http_socket, get, get_len);
 
-  printf("response: \n");
   char b;
+  int in_header = 1;
+  int rn_status = 0;
   while (read(http_socket, &b, 1)) {
-    printf("%c", b);
+    if (b == '\r' || b == '\n') {
+      rn_status++;
+      if (rn_status==4) {
+        in_header = 0;
+      }
+    } else {
+      rn_status = 0;
+    }
+    if (!in_header) {
+      strncat(response, &b, 1);
+    }
   }
-  printf("\n");
+
+  input_string = response;
+  input_len = strlen(input_string);
+  yyparse();
+
+#ifdef DEBUG
+  struct key_value *kvl_iterator = kvl_list;
+  for (; kvl_iterator; kvl_iterator = kvl_iterator->next) {
+    printf("%s:%s\n", kvl_iterator->key, kvl_iterator->value);
+  }
+#endif
 
 error:
   close(http_socket);
