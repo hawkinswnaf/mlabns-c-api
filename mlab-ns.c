@@ -13,6 +13,8 @@ extern int input_len;
 extern char *input_string;
 struct key_value *kvl_list;
 
+#define COUNT_OF(arr) (sizeof(arr)/sizeof(arr[0]))
+
 #define DEBUG 1
 /*
  *
@@ -31,8 +33,6 @@ int mlab_ns(char *service, char *mlabns_server, struct sockaddr_in *service_ip) 
 #ifdef DEBUG
   char buff[512] = {'\0', };
 #endif
-
-  char response[512] = {'\0',};
 
   kvl_list = NULL;
 
@@ -111,7 +111,10 @@ int mlab_ns(char *service, char *mlabns_server, struct sockaddr_in *service_ip) 
   char b;
   int in_header = 1;
   int rn_status = 0;
-  while (read(http_socket, &b, 1)) {
+  char response[512] = {'\0',};
+  size_t response_size = 0;
+  while (read(http_socket, &b, 1) &&
+         (response_size < (COUNT_OF(response) - 1))) {
     if (b == '\r' || b == '\n') {
       rn_status++;
       if (rn_status==4) {
@@ -121,7 +124,8 @@ int mlab_ns(char *service, char *mlabns_server, struct sockaddr_in *service_ip) 
       rn_status = 0;
     }
     if (!in_header) {
-      strncat(response, &b, 1);
+      response[response_size] = b;
+      response_size++;
     }
   }
 
