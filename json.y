@@ -1,11 +1,13 @@
+/* vim: set expandtab ts=2: */
 %{
     #include<stdio.h>
     #include<string.h>
     #include<stdlib.h>
-    #include"kvl.h"
-    extern struct key_value *kvl_list;
+    #include"json_object.h"
+    struct json_object *root = NULL;
     #define YYSTYPE char*
     char *strconcat(char *str1, char *str2);
+    void yyerror(char const *);
 %}
 %token NUMBER
 %token STRING
@@ -15,72 +17,73 @@
 %left COLON
 %%
 START: ARRAY {
-//    printf("%s",$1);
+  root = $$;
   }
 | OBJECT {
-//    printf("%s",$1);
+  root = $$;
   }
 ;
 OBJECT: O_BEGIN O_END {
-    $$ = "{}";
+    $$ = new_object_object(NULL);
   }
 | O_BEGIN MEMBERS O_END {
-    $$ = (char *)malloc(sizeof(char)*(1+strlen($2)+1+1));
-    sprintf($$,"{%s}",$2);
+    $$ = $2;
   }
 ;
 MEMBERS: PAIR {
     $$ = $1;
   }
 | PAIR COMMA MEMBERS {
-    $$ = (char *)malloc(sizeof(char)*(strlen($1)+1+strlen($3)+1));
-    sprintf($$,"%s,%s",$1,$3);
+    ((struct json_object*)$1)->next = $3;
+    $$ = $1;
   }
 ;
 PAIR: STRING COLON VALUE {
-    $$ = (char *)malloc(sizeof(char)*(strlen($1)+1+strlen($3)+1));
-    sprintf($$,"%s:%s",$1,$3);
-    struct key_value *new_kv = (struct key_value*)
-                             malloc(sizeof(struct key_value));
 
-    memset(new_kv, 0, sizeof(struct key_value));
-
-    new_kv->key = (char*)malloc(sizeof(char)*(strlen($1)+1));
-    memcpy(new_kv->key, $1, strlen($1));
-
-    new_kv->value = (char*)malloc(sizeof(char)*(strlen($3)+1));
-    memcpy(new_kv->value, $3, strlen($3));
-
-    new_kv->next = kvl_list;
-    kvl_list = new_kv;
-  }
+    ((struct json_object*)$3)->name=(char*)malloc(sizeof(char)*(strlen($1)+1));
+    sprintf(((struct json_object*)$3)->name,"%s",$1);
+    $$ = $3;
+}
 ;
 ARRAY: A_BEGIN A_END {
-    $$ = (char *)malloc(sizeof(char)*(2+1));
-    sprintf($$,"[]");
+    $$ = new_object_array(NULL);
   }
 | A_BEGIN ELEMENTS A_END {
-    $$ = (char *)malloc(sizeof(char)*(1+strlen($2)+1+1));
-    sprintf($$,"[%s]",$2);
+    $$ = $2;
 }
 ;
 ELEMENTS: VALUE {
-    $$ = $1;
+    $$ = new_object_array($1);
   }
 | VALUE COMMA ELEMENTS {
-    $$ = (char *)malloc(sizeof(char)*(strlen($1)+1+strlen($3)+1));
-    sprintf($$,"%s,%s",$1,$3);
+    ((struct json_object*)$1)->a_value = $3;
+    $$ = $1;
   }
 ;
-VALUE: STRING {$$=yylval;}
-| NUMBER {$$=yylval;}
-| OBJECT {$$=$1;}
-| ARRAY {$$=$1;}
-| true {$$="true";}
-| false {$$="false";}
-| null {$$="null";}
+VALUE: STRING {
+  $$=new_object_single(yylval);
+}
+| NUMBER {
+  $$=new_object_single(yylval);
+}
+| OBJECT {
+  $$=$1;
+}
+| ARRAY {
+  $$=$1;
+}
+| true {
+  $$=new_object_single("true");
+}
+| false {
+  $$=new_object_single("false");
+}
+| null {
+  $$=new_object_single("null");
+}
 ;
 %%
+
 int yywrap()
 {
    return 1;
@@ -94,6 +97,8 @@ char *strconcat(char *str1, char *str2)
     strcpy(&(str3[len1]),str2);
     return str3;
 }
+
 void yyerror(char const *s) {
     fprintf(stderr, "%s\n", s);
 }
+

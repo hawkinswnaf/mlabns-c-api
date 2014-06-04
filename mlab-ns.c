@@ -6,12 +6,12 @@
 #include <string.h>
 #include <netdb.h>
 #include <arpa/inet.h>
-#include "kvl.h"
+#include "json_object.h"
 
 extern int input_pos;
 extern int input_len;
 extern char *input_string;
-struct key_value *kvl_list;
+extern struct json_object *root;
 
 #define DEBUG 1
 /*
@@ -33,8 +33,6 @@ int mlab_ns(char *service, char *mlabns_server, struct sockaddr_in *service_ip) 
 #endif
 
   char response[512] = {'\0',};
-
-  kvl_list = NULL;
 
   if (!mlabns_server) {
     mlabns_server = "mlab-ns.appspot.com";
@@ -130,10 +128,10 @@ int mlab_ns(char *service, char *mlabns_server, struct sockaddr_in *service_ip) 
   yyparse();
 
 #ifdef DEBUG
-  struct key_value *kvl_iterator = kvl_list;
-  for (; kvl_iterator; kvl_iterator = kvl_iterator->next) {
-    printf("%s:%s\n", kvl_iterator->key, kvl_iterator->value);
-  }
+  struct json_object *obj_iterator = root;
+  for (; obj_iterator; obj_iterator = obj_iterator->next) {
+    print_json_object(obj_iterator);
+ }
 #endif
 
 error:
