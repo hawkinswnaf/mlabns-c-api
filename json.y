@@ -27,7 +27,7 @@ OBJECT: O_BEGIN O_END {
     $$ = new_object_object(NULL);
   }
 | O_BEGIN MEMBERS O_END {
-    $$ = $2;
+    $$ = new_object_object($2);
   }
 ;
 MEMBERS: PAIR {

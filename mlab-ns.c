@@ -128,10 +128,7 @@ int mlab_ns(char *service, char *mlabns_server, struct sockaddr_in *service_ip) 
   yyparse();
 
 #ifdef DEBUG
-  struct json_object *obj_iterator = root;
-  for (; obj_iterator; obj_iterator = obj_iterator->next) {
-    print_json_object(obj_iterator);
- }
+  print_json_object(root);
 #endif
 
 error:

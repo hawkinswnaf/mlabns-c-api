@@ -29,7 +29,7 @@ struct json_object *new_object_object(struct json_object *object) {
   EMPTY_JSON_OBJECT(new_object);  
 
   new_object->type = JSON_TYPE_OBJECT;
-  new_object->a_value = object;
+  new_object->next = object;
 
   return new_object;
 }
@@ -55,8 +55,13 @@ void print_json_object(struct json_object *obj) {
 
   if (obj_iterator->type == JSON_TYPE_ARRAY) {
     struct json_object *array_obj_iterator = obj_iterator->a_value;
-    for (; array_obj_iterator; array_obj_iterator = array_obj_iterator->a_value) {
+    for (;array_obj_iterator; array_obj_iterator=array_obj_iterator->a_value) {
       print_json_object(array_obj_iterator);
+    }
+  } else if (obj_iterator->type == JSON_TYPE_OBJECT) {
+    struct json_object *obj_obj_iterator = obj_iterator->next;
+    for (;obj_obj_iterator; obj_obj_iterator=obj_obj_iterator->next) {
+      print_json_object(obj_obj_iterator);
     }
   }
 }
