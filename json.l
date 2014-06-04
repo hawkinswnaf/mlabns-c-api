@@ -5,6 +5,7 @@
     int input_pos = 0;
     int input_len = 0;
     char *input_string = NULL;
+    extern int json_parse_success;
     /*
     #define STRING "str"
     #define NUMBER "number"
@@ -79,8 +80,7 @@ null {
     return COLON;
 };
 . {
-    printf("Unexpected: %c\nExiting...\n",*yytext);
-    exit(0);
+    json_parse_success = 0;
 }
 %%
 char *strclone(char *str)

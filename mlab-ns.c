@@ -12,6 +12,7 @@ extern int input_pos;
 extern int input_len;
 extern char *input_string;
 extern struct json_object *root;
+int json_parse_success;
 
 #define DEBUG 1
 /*
@@ -28,11 +29,15 @@ int mlab_ns(char *service, char *mlabns_server, struct sockaddr_in *service_ip) 
   int get_len = 0;
   int success = 1;
   int http_socket = -1;
+  char end_of_header[4] = {'\r', '\n', '\r', '\n',};
+  int end_of_header_ctr = 0, end_of_header_len = 4;
+  char response[513] = {'\0',};
+  int response_len_ctr = 0, response_len_max = 42; //512;
+  char b;
+  int in_header = 1;
 #ifdef DEBUG
   char buff[512] = {'\0', };
 #endif
-
-  char response[512] = {'\0',};
 
   if (!mlabns_server) {
     mlabns_server = "mlab-ns.appspot.com";
@@ -106,29 +111,38 @@ int mlab_ns(char *service, char *mlabns_server, struct sockaddr_in *service_ip) 
 
   write(http_socket, get, get_len);
 
-  char b;
-  int in_header = 1;
-  int rn_status = 0;
   while (read(http_socket, &b, 1)) {
-    if (b == '\r' || b == '\n') {
-      rn_status++;
-      if (rn_status==4) {
+    if (in_header) {
+      if (end_of_header[end_of_header_ctr++] != b) {
+        end_of_header_ctr = 0;
+      }
+      if (end_of_header_ctr>=end_of_header_len) {
         in_header = 0;
       }
     } else {
-      rn_status = 0;
-    }
-    if (!in_header) {
-      strncat(response, &b, 1);
+      if (response_len_ctr>=response_len_max)
+        break;
+      response[response_len_ctr] = b;
+      response_len_ctr++;
     }
   }
 
+#ifdef DEBUG
+  printf("response: -%s-\n", response);
+#endif
+
+  json_parse_success = 1;
   input_string = response;
   input_len = strlen(input_string);
   yyparse();
 
+  if (!json_parse_success) {
+    printf("failed to parse.\n");
+    goto error;
+  }
+
 #ifdef DEBUG
-  print_json_object(root);
+  if (json_parse_success) print_json_object(root);
 #endif
 
 error:

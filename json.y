@@ -5,6 +5,7 @@
     #include<stdlib.h>
     #include"json_object.h"
     struct json_object *root = NULL;
+    extern int json_parse_success;
     #define YYSTYPE char*
     char *strconcat(char *str1, char *str2);
     void yyerror(char const *);
@@ -99,6 +100,6 @@ char *strconcat(char *str1, char *str2)
 }
 
 void yyerror(char const *s) {
-    fprintf(stderr, "%s\n", s);
+    json_parse_success = 0;
 }
 
